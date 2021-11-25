@@ -5,7 +5,7 @@
 
 #The following part is only needed if starting from a fresh environment----
 project_id <- "sdenolly_canxapms"
-fit_version <- "20211119"
+fit_version <- "20211125"
 message('Project ID=', project_id, " fit version=", fit_version)
 
 require(tidyverse)

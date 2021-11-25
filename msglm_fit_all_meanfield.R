@@ -3,8 +3,8 @@
 Sys.setenv(MKL_NUM_THREADS = 1)
 
 project_id <- "sdenolly_canxapms"
-msfolder <- "mq20211029"
-data_version <- "20211119"
+msfolder <- "mq20211122"
+data_version <- "20211125"
 fit_version <- data_version
 
 message("Project ID=", project_id,

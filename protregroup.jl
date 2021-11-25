@@ -1,6 +1,6 @@
-proj_info = (id = "sdenolly_zikvreloc",
-             data_ver = "20211119",
-             msfolder = "mq20211029")
+proj_info = (id = "sdenolly_canxapms",
+             data_ver = "20211125",
+             msfolder = "mq20211122")
 using Pkg
 Pkg.activate(@__DIR__)
 
@@ -17,6 +17,7 @@ const scratch_path = joinpath(analysis_path, "scratch")
 const plots_path = joinpath(analysis_path, "plots")
 
 includet(joinpath(misc_scripts_path, "protgroup_assembly.jl"));
+includet(joinpath(misc_scripts_path, "protgroup_crossmatch.jl"));
 
 peptides_rdata = load(joinpath(data_path, proj_info.msfolder,
                                "$(proj_info.id)_$(proj_info.msfolder)_$(proj_info.data_ver)_peptides.RData"))

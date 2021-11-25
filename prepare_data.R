@@ -4,8 +4,8 @@
 ###############################################################################
 
 project_id <- "sdenolly_canxapms"
-msfolder <- "mq20211029"
-data_version <- "20211119"
+msfolder <- "mq20211122"
+data_version <- "20211125"
 message('Project ID=', project_id, " data version=", data_version)
 
 source("~/R/config.R")
@@ -51,7 +51,14 @@ fasta.dfs <- list(
   )
 )
 
+fix_viral_protein_acs <- function(acs) {
+  str_remove_all(str_remove_all(acs, "(?<=^|;)(?:sp|tr)\\|"), "\\|[^|]+(?=;|$)")
+}
+
 msdata.wide <- read.MaxQuant.ProteinGroups(file.path(msdata_path, 'combined/txt'), import_data = c(data_info$quant_type, "ident_type"))
+# fix protein acs
+msdata.wide <- dplyr::mutate(msdata.wide,
+                             across(matches("_acs?$"), fix_viral_protein_acs))
 msdata_colgroups <- attr(msdata.wide, "column_groups")
 
 mqevidence <- read.MaxQuant.Evidence(file.path(msdata_path, 'combined', 'txt'),
@@ -71,6 +78,10 @@ mqevidence$peptides <- read.MaxQuant.Peptides(file.path(msdata_path, 'combined',
                                               import_data='ident_type')
 mqevidence$peaks <- NULL # exclude big data frame
 
+for (dfname in c("pepmods", "pepmodstates", "peptides")) {
+  mqevidence[[dfname]] <- dplyr::mutate(mqevidence[[dfname]], across(matches("_acs?$"), fix_viral_protein_acs))
+}
+
 strlist_label <- function(strs) {
   str_c(strs[[1]], if_else(n_distinct(strs) > 1, '...', ''))
 }
@@ -82,7 +93,7 @@ strlist_label2 <- function(strs, delim=fixed(';')) {
 msdata_full <- list(msexperiments = dplyr::select(mqevidence$msexperiments, -starts_with("msfraction")),
                     msruns = mqevidence$msruns)
 
-msdata_full <- append_protgroups_info(msdata_full, msdata.wide,
+msdata_full <- append_protgroups_info(msdata_full, dplyr::mutate(msdata.wide, organism=NULL),
                                       proteins_info = dplyr::bind_rows(fasta.dfs) %>%
                                         dplyr::mutate(protein_ac_noiso = str_remove(protein_ac, "-\\d+(?:#.+)*$"),
                                                       protein_isoform_ix = replace_na(as.integer(str_match(protein_ac, "-(\\d+)$")[, 2]), 1L)),
@@ -98,7 +109,7 @@ msdata_full$pepmodstates <- mqevidence$pepmodstates
 # redefine protein groups (protregroups)
 peptides.df <- dplyr::select(msdata_full$peptides, peptide_id, protgroup_ids, protein_acs, lead_razor_protein_ac,
                              peptide_seq, is_reverse, peptide_rank)
-proteins.df <- dplyr::bind_rows(fasta.dfs)
+proteins.df <- msdata_full$proteins
 save(file = file.path(msdata_path, str_c(project_id, "_", msfolder, '_', data_version, "_peptides.RData")),
      peptides.df, proteins.df)
 # .. run protregroup.jl
@@ -134,7 +145,7 @@ msdata_full$protregroups <- msdata_full$protregroups %>%
   dplyr::mutate(gene_label = strlist_label2(gene_names),
                 protein_label = strlist_label2(protein_names),
                 protein_description = strlist_label2(protein_descriptions),
-                is_viral = replace_na(str_detect(organism, "virus"), FALSE),
+                is_viral = replace_na(str_detect(organism, "ZIKV"), FALSE),
                 protac_label = strlist_label2(majority_protein_acs),
                 protregroup_label = case_when(is_viral ~ protein_label,
                                               !is.na(gene_label) ~ gene_label,
@@ -376,7 +387,7 @@ fit_effect_scales <- function(data_df, sigma_t_offset=1E-3, scale_sigma_df=2, da
 }
 
 effect_scales_fit.df <- fit_effect_scales(pepmodstate_intensities_pairs4eff_scale.df)
-#saveRDS(effect_scales_fit.df, file.path(scratch_path, str_c(project_id, "_", msfolder, "_", fit_version, "_effect_scales.rds")))
+#saveRDS(effect_scales_fit.df, file.path(scratch_path, str_c(project_id, "_", msfolder, "_", data_info$fit_ver, "_effect_scales.rds")))
 
 effect_scales.df <- dplyr::transmute(dplyr::filter(effect_scales_fit.df, var=="scale_log2"),
                                      msrun,
@@ -401,8 +412,8 @@ msexpXeffect.mtx <- msglm::frame2matrix(msrunXeffect.df, row_col="msexperiment",
                                         rows = dplyr::arrange(msdata$msexperiments, bait, treatment, batch) %>% .$msexperiment)
 
 pheatmap(msexpXeffect.mtx, cluster_rows=FALSE, cluster_cols=FALSE, display_numbers = TRUE, number_format = "%.3f",
-         filename = file.path(analysis_path, "plots", paste0(msfolder, "_", fit_version),
-                              paste0(project_id, "_msexperimentXeffect_", msfolder, "_", fit_version, ".pdf")),
+         filename = file.path(analysis_path, "plots", paste0(msfolder, "_", data_info$fit_ver),
+                              paste0(project_id, "_msexperimentXeffect_", msfolder, "_", data_info$fit_ver, ".pdf")),
          width = 8, height = 12)
 
 # redefine model with scaled effects
