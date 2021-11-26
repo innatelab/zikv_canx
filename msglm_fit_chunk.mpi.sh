@@ -25,13 +25,12 @@ ANALYSIS_ROOT=$(realpath /fs/pool/pool-innate-analysis/$USER/analysis)
 SCRATCH_ROOT=$(realpath /fs/pool/pool-innate-analysis/$USER/scratch)
 CHARLIECLOUD_PATH=$(dirname $(which ch-run))
 
-PROJECT_ID=sdenolly_canxapms_msglm
+PROJECT_ID=sdenolly_canxapms
 FIT_VERSION=20211125
 CHUDIS_JOBID=${PROJECT_ID}_${FIT_VERSION}
 CHUDIS_USER=ge68wan2
 
-srun -c$SLURM_CPUS_PER_TASK --ntasks-per-node=$SLURM_NTASKS_PER_NODE --mem=$SLURM_MEM_PER_NODE --wait=0 \
-     --no-kill --distribution=block --exclusive=user \
+srun --wait=0 --no-kill --distribution=block --exclusive=user \
      -o "$SCRATCH_ROOT/logs/$PROJECT_ID/%x_%j_%t.log" \
 ${CHUDIS_PATH}/slurmstep_process_chunks.sh $CHUDIS_JOBID $CHUDIS_USER \
 "${CHARLIECLOUD_PATH}/ch-run $IMAGES_PATH/archpc.msglm_v050 \
