@@ -23,7 +23,7 @@ require(stringr)
 require(readr)
 require(pheatmap)
 
-data_info <- list(project_id = project_id, data_ver=data_version, fit_ver=data_version,
+data_info <- list(project_id = project_id, data_ver=data_version, fit_ver="20211126",
                   pepmodstate_mscalib_filename = "mscalib_QEP5_intensity_pepmodstate_cov2_20211108.json",
                   msfolder = msfolder)
 msdata_path <- file.path(data_path, msfolder)
@@ -203,12 +203,12 @@ effects.df <- tibble(effect=colnames(conditionXeffect.mtx)) %>%
                               !is.na(bait) & !is.na(treatment) ~ "bait_treatment",
                               !is.na(bait) ~ "bait",
                               !is.na(treatment) ~ "treatment")) %>%
-  dplyr::mutate(prior_tau = case_when(effect_type == "bait" ~ 2.0,
+  dplyr::mutate(prior_tau = case_when(effect_type == "bait" ~ 1.0,
                                       effect_type == "treatment" ~ 1.0,
                                       effect_type == "bait_treatment" ~ 0.5,
                                       TRUE ~ 1.0),
                 prior_mean = 0.0,
-                prior_df1 = case_when(effect_type == "bait" ~ 1.0,
+                prior_df1 = case_when(effect_type == "bait" ~ 2.0,
                                       effect_type == "treatment" ~ 2.0,
                                       effect_type == "bait_treatment" ~ 4.0,
                                       TRUE ~ 1.0),

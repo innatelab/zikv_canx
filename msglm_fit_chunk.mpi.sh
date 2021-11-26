@@ -26,7 +26,7 @@ SCRATCH_ROOT=$(realpath /fs/pool/pool-innate-analysis/$USER/scratch)
 CHARLIECLOUD_PATH=$(dirname $(which ch-run))
 
 PROJECT_ID=sdenolly_canxapms
-FIT_VERSION=20211125
+FIT_VERSION=20211126
 CHUDIS_JOBID=${PROJECT_ID}_${FIT_VERSION}
 CHUDIS_USER=ge68wan2
 

@@ -4,17 +4,16 @@ Sys.setenv(MKL_NUM_THREADS = 1)
 
 project_id <- "sdenolly_canxapms"
 msfolder <- "mq20211122"
-data_version <- "20211125"
-fit_version <- data_version
+fit_version <- "20211126"
 
 message("Project ID=", project_id,
-        " (data_version=", data_version, " fit_version=", fit_version, ") running on ", Sys.info()["nodename"], ")")
+        " (fit_version=", fit_version, ") running on ", Sys.info()["nodename"], ")")
 
 source('~/R/config.R')
 source(file.path(base_scripts_path, 'R/misc/setup_base_paths.R'))
 source(file.path(misc_scripts_path, 'setup_project_paths.R'))
 
-rdata_filepath <- file.path(scratch_path, paste0(project_id, "_msglm_data_", data_version, ".RData"))
+rdata_filepath <- file.path(scratch_path, paste0(project_id, "_msglm_data_", fit_version, ".RData"))
 message("Loading data from ", rdata_filepath)
 load(rdata_filepath)
 
@@ -45,8 +44,8 @@ try_fit_model <- function(stan_data, ntries, ...) {
 
 opts <- furrr_options(packages = c("dplyr", "msglm", "rlang"),
               globals = c("msglm_def", "msdata", "try_fit",
-                          "project_id", "data_version",
-                          "fit_version", "data_info", "mcmc_nchains"),
+                          "project_id", "fit_version",
+                          "data_info", "mcmc_nchains"),
               seed = TRUE, stdout = FALSE, scheduling = 1)#Inf)
 
 fit_chunks <- rowwise(msdata$objects) %>% group_map(function(r, ...) r) %>%
@@ -92,8 +91,7 @@ fit_stats <- combine_fit_chunks(fit_chunks, 'stats')
 fit_contrasts <- combine_fit_chunks(fit_chunks, 'contrast_stats')
 
 rfit_filepath <- file.path(scratch_path, paste0(project_id, '_msglm_fit_meanfield_', fit_version, '.RData'))
-results_info <- list(project_id = project_id, data_version = data_version,
-                     fit_version = fit_version)
+results_info <- list(project_id = project_id, fit_version = fit_version)
 message('Saving full analysis results to ', rfit_filepath, '...')
 save(results_info, fit_stats, fit_contrasts, file = rfit_filepath)
 message('Done.')

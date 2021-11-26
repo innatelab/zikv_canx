@@ -34,7 +34,7 @@ IMAGES_PATH=$SCRATCH/docker4muc
 CHUDIS_PATH=$HOME/projects/cool_chunk_dispatcher
 
 PROJECT_ID=sdenolly_canxapms
-FIT_VERSION=20211125
+FIT_VERSION=20211126
 
 srun --wait=0 --no-kill --distribution=block --exclusive=user \
      -o $SCRATCH/logs/$PROJECT_ID/%x_%j_%t.log \

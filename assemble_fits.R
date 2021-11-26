@@ -6,7 +6,7 @@
 project_id <- "sdenolly_canxapms"
 message('Project ID=', project_id)
 data_version <- "20211125"
-fit_version <- "20211125"
+fit_version <- "20211126"
 message("Assembling fit results for project ", project_id,
         " (dataset v", data_version, ", fit v", fit_version, ")")
 
@@ -20,7 +20,7 @@ require(stringr)
 require(furrr)
 
 message('Loading data...')
-load(file.path(scratch_path, paste0(project_id, '_msglm_data_', data_version, '.RData')))
+load(file.path(scratch_path, paste0(project_id, '_msglm_data_', fit_version, '.RData')))
 load(file.path(scratch_path, paste0(project_id, '_msdata_full_', data_version, '.RData')))
 
 message('Loading MSGLM model fit results...')
