@@ -63,7 +63,7 @@ object_contrasts_thresholds.df <- dplyr::select(contrasts.df, offset, offset_pri
     median_threshold = case_when(contrast_type=="filter" ~ pmax(2.0, 2.0 + abs(offset - offset_prior)),
                                  contrast_type=="comparison" ~ pmax(1.0, 0.25 + abs(offset - offset_prior)),
                                  TRUE ~ NA_real_),
-    median_max = case_when(contrast_type=="filter" ~ 4,
+    median_max = case_when(contrast_type=="filter" ~ 5,
                            contrast_type=="comparison" ~ 4,
                            TRUE ~ NA_real_)
   )
@@ -145,7 +145,7 @@ future_group_walk(.progress=TRUE, .keep=TRUE, .options=plot_furrr_opts,
 
 object_effects_thresholds.df <- dplyr::select(msglm_def$effects, effect, prior_mean) %>%
   dplyr::mutate(p_value_threshold = 1E-3,
-                median_threshold = c(0.5),
+                median_threshold = c(1.0),
                 median_max = c(5)
   )
 
@@ -224,6 +224,10 @@ object_batch_effects_4show.df <- fit_stats$object_batch_effects %>%
   select(-contains('threshold')) %>%
   dplyr::inner_join(object_batch_effects_thresholds.df) %>%
   dplyr::mutate(is_signif = (p_value <= p_value_threshold) & (abs(median - prior_mean) >= median_threshold),
+                hit_type = case_when(is_signif & is_viral ~ "viral hit",
+                                     is_signif & !is_contaminant & !is_reverse ~ "hit",
+                                     is_signif ~ "non-hit",
+                                     TRUE ~ "non-hit"),
                 mean_trunc = pmax(-median_max, pmin(median_max, mean - prior_mean)) + prior_mean,
                 median_trunc = pmax(-median_max, pmin(median_max, median - prior_mean)) + prior_mean,
                 truncation = volcano_truncation(median, median_trunc, p_value, is_signif, !is_signif),
@@ -237,7 +241,8 @@ future_group_walk(.progress=TRUE, .keep=TRUE, .options=plot_furrr_opts,
   message("Plotting ", effect_info$batch_effect)
 
   p <- ggplot(sel_object_effect.df,
-              aes(x=median_trunc, y=p_value, shape=truncation, size=truncation_type)) +
+              aes(x=median_trunc, y=p_value, color=hit_type,
+                  shape=truncation, size=truncation_type)) +
     geom_hline(data=effect_info, aes(yintercept = p_value_threshold), linetype=2, color="darkgray") +
     #geom_hline(data=effect_info, aes(yintercept = p_value_max), linetype=1, color="darkgray") +
     geom_vline(data=effect_info, aes(xintercept = prior_mean), linetype=1, color="darkgray") +
@@ -252,11 +257,9 @@ future_group_walk(.progress=TRUE, .keep=TRUE, .options=plot_furrr_opts,
                     size=2.5, point.padding=0.2, box.padding=0.15,
                     show.legend = FALSE, segment.color = "gray") +
     scale_y_continuous(trans=mlog10_trans(), limits=c(1.0, NA)) +
-    #scale_fill_gradient(low="gray75", high="black") +
-    #scale_alpha_manual(values=c("TRUE"=1.0, "FALSE"=0.5)) +
+    scale_color_manual(values=hit_palette, na.value="magenta") +
     scale_shape_manual(values=point_truncation_shape_palette, guide="none") +
     scale_size_manual(values=point_truncation_size_palette, guide="none") +
-    #facet_grid(p_value_range ~ contrast, scales = "free_y") +
     ggtitle(effect_info$batch_effect) +
     theme_bw_ast(base_family = base_font_family)
   plot_path <- file.path(base_plot_path, "volcanos_batch_effects")
@@ -305,6 +308,7 @@ object_treatment_specificity.df <-
                 is_sel = FALSE,
                 is_hit_nomschecks = is_signif & !is_reverse & !is_contaminant,
                 is_hit = is_signif_eff & (is_signif_mock | is_signif_zikv) & !is_reverse & !is_contaminant,
+                is_viral = object_id %in% dplyr::filter(msdata$objects, is_viral)$object_id,
                 hit_type = case_when(is_hit & is_viral ~ "viral hit",
                                      is_hit ~ "hit",
                                      is_viral ~ "viral", TRUE ~ "non-hit"),
@@ -333,19 +337,15 @@ group_walk(.keep=TRUE,
     geom_point(data=dplyr::filter(plot_data.df, is_signif)) +
     geom_text_repel(data=dplyr::filter(plot_data.df, is_hit_nomschecks),
                     aes(label = object_label),
-                    nudge_y = -0.02,
+                    nudge_y = -0.05,
                     size=2.5, force=1.0,
-                    point.padding=0.01, box.padding=0.1, max.overlaps = 15,
+                    point.padding=0.01, box.padding=0.1, max.overlaps = 25,
                     show.legend = FALSE, segment.color = "gray") +
-    #scale_fill_gradient(low="gray75", high="black") +
-    #scale_alpha_manual(values=c("TRUE"=1.0, "FALSE"=0.5)) +
-    scale_x_continuous("log2(fold-change) Mock",  limits = c(-1.25, 4.25)) +
-    scale_y_continuous("log2(fold-change) ZikV",  limits = c(-1.25, 4.25)) +
+    scale_x_continuous("log2(fold-change) Mock",  limits = c(-1.15, 5.15)) +
+    scale_y_continuous("log2(fold-change) ZikV",  limits = c(-1.15, 5.15)) +
     scale_shape_manual(values=point_truncation_shape_palette, guide="none") +
     scale_size_manual(values=point_truncation_size_palette, guide="none") +
     scale_color_manual(values=hit_palette, na.value="magenta") +
-    #scale_color_manual(values=orgcode_palette, guide="none") +
-    #facet_grid(p_value_range ~ contrast, scales = "free_y") +
     ggtitle(paste0("ZikV vs Mock of CANX AP-MS"),
             subtitle=str_c("ci_target=", plot_info$ci_target)) +
     theme_bw_ast(base_family = base_font_family)
@@ -362,13 +362,13 @@ group_walk(.keep=TRUE,
 sel_objects.df <- dplyr::filter(msdata$objects, str_detect(gene_names, "^VPS\\d+|STAT\\d+|ZC3HAV")) #This is used for debugging
 sel_objects.df <- dplyr::semi_join(msdata$objects, dplyr::select(fit_stats$objects, object_id), by="object_id") #This is all!
 
-# boxplots of model fit for each  protein group
+# boxplots of model fit for each protein group
 rowwise(sel_objects.df) %>%
 #group_walk(
 future_group_walk(.progress=TRUE, .options=plot_furrr_opts,
                   function(sel_obj.df, ignore.df) {
   obj_label <- sel_obj.df$object_label
-  obj_label_safe <- str_replace_all(str_remove(replace_na(obj_label, "noname"), "\\.\\.\\.$"), "[/.]+", "_")
+  obj_label_safe <- str_replace_all(str_remove(coalesce(obj_label, "noname"), "\\.\\.\\.$"), "[/.]+", "_")
   message("Plotting ", obj_label, " box plots")
   sel_obj_conds.df <- dplyr::semi_join(dplyr::filter(fit_stats$object_conditions, ci_target == sel_ci_target & str_starts(var, "obj_cond_labu")),
                                        sel_obj.df, by="object_id") %>%
@@ -400,7 +400,7 @@ future_group_walk(.progress=TRUE, .options=plot_furrr_opts,
     ggsave(obj_plot, file = file.path(plot_path,
                                str_c(project_id, "_", fit_version, "_", obj_label_safe,
                                      "_", sel_obj.df$object_id[[1]], ".pdf")),
-           width=8, height=6, device = cairo_pdf, family=base_font_family)
+           width=4, height=6, device = cairo_pdf, family=base_font_family)
   }
 })
 
@@ -420,12 +420,12 @@ sel_pepmodstates.df <- dplyr::inner_join(sel_objects.df, msdata_full[[str_c(mode
   dplyr::inner_join(dplyr::select(msdata_full$pepmods, pepmod_id, peptide_id, pepmod_seq, peptide_seq)) %>%
   dplyr::select(object_id, pepmod_id, majority_protein_acs, protac_label, gene_label, gene_names,
                 nidented, nquanted, pepmod_seq, peptide_seq, charge, pepmodstate_id, is_specific)
-if (exists("fit_stats") && has_name(fit_stats, "quantobjects")) {
+if (exists("fit_stats") && rlang::has_name(fit_stats, "quantobjects")) {
   sel_pepmodstates.df <- dplyr::left_join(sel_pepmodstates.df,
                                           dplyr::select(dplyr::filter(fit_stats$quantobjects, var=="qobj_shift"),
                                                         pepmodstate_id=quantobject_id, pms_median = median),
                                           by="pepmodstate_id") %>%
-    dplyr::arrange(object_id, desc(is_specific), desc(tidyr::replace_na(pms_median, -1000.0)), desc(nidented), desc(nquanted),
+    dplyr::arrange(object_id, desc(is_specific), desc(coalesce(pms_median, -1000.0)), desc(nidented), desc(nquanted),
                    peptide_seq, pepmod_seq, charge)
 } else {
   sel_pepmodstates.df <- dplyr::arrange(sel_pepmodstates.df, object_id, desc(is_specific), desc(nidented), desc(nquanted),
@@ -476,7 +476,7 @@ future_group_walk(.progress=TRUE, .keep=TRUE, .options=plot_furrr_opts,
                                            pmax(pmin(intensity_norm, quantile(intensity_norm, 0.95, na.rm=TRUE)),
                                                          quantile(intensity_norm, 0.05, na.rm=TRUE))) #sel_pepmod_intens.df
   obj_label <- obj_row$object_label
-  obj_label_safe <- str_replace_all(str_remove(replace_na(obj_label, "noname"), "\\.\\.\\.$"), "[/.]+", "_")
+  obj_label_safe <- str_replace_all(str_remove(coalesce(obj_label, "noname"), "\\.\\.\\.$"), "[/.]+", "_")
   message("Plotting ", obj_label, "...")
   p <- ggplot(shown_pepmod_intens.df) +
     geom_tile(aes(x=msexperiment, y=pepmodstate_ext,
