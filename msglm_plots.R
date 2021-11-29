@@ -375,15 +375,37 @@ future_group_walk(.progress=TRUE, .options=plot_furrr_opts,
     dplyr::inner_join(dplyr::select(msglm_def$conditions, condition, bait, treatment), by="condition") %>%
     dplyr::mutate(dplyr::across(c(mean, median, starts_with("q")),
                   ~2^(.x + obj_labu_shift)))%>%
-    dplyr::mutate(q97.5_limit = max(median + (q75-q25)*5))
+    dplyr::mutate(q97.5_limit = max(median + (q75-q25)*5)) %>%
+    #dplyr::mutate(bait = factor(bait) %>% relevel("empty")) %>%
+    dplyr::arrange(bait, treatment) %>%
+    dplyr::mutate(condition = factor(condition, levels=condition))
+  sel_obj_contrasts.df <- dplyr::semi_join(dplyr::filter(object_contrasts_4show.df, ci_target == sel_ci_target & str_starts(var, "obj_cond_labu")),
+                                                         sel_obj.df, by="object_id") %>%
+                        dplyr::left_join(contrasts.df) %>%
+                        dplyr::left_join(dplyr::select(sel_obj_conds.df, obj_abu_lhs = q97.5, metacondition_lhs = condition)) %>%
+                        dplyr::left_join(dplyr::select(sel_obj_conds.df, obj_abu_rhs = q97.5, metacondition_rhs = condition)) %>%
+                        mutate(obj_abu = pmax(obj_abu_lhs, obj_abu_rhs),
+                               group1 = metacondition_lhs, group2 = metacondition_rhs,
+                               y.position = log10(obj_abu) + 0.1, treatment = NA_character_,
+                               p_value = sprintf("%.3f p=%.2e", median, p_value))
   #sel_obj_msdata.df <- dplyr::semi_join(modelobject_intensities.df, sel_obj.df, by="object_id")
 
   if (nrow(sel_obj_conds.df) > 0) {
     obj_plot <-
       ggplot(data=sel_obj_conds.df,
-             aes(x=bait, color=treatment, fill=treatment)) +
+             aes(x=condition, color=treatment, fill=treatment)) +
       geom_boxplot(aes(middle=median, lower=q25, upper=q75, ymin=q2.5, ymax=pmin(q97.5, q97.5_limit)),
                    alpha=0.5, stat = "identity") +
+      stat_pvalue_manual(data = dplyr::filter(sel_obj_contrasts.df, !is_signif),
+                         #aes(y.position = obj_abu,
+                         #    xmin = metacondition_lhs, xmax = metacondition_rhs),
+                         color="darkgray", label = "p_value", size=2,
+                         tip.length = 0.005, step.increase = 0.01) +
+      stat_pvalue_manual(data = dplyr::filter(sel_obj_contrasts.df, is_signif),
+                         #aes(y.position = obj_abu,
+                         #    xmin = metacondition_lhs, xmax = metacondition_rhs),
+                         color="black", label = "p_value", size=2,
+                         tip.length = 0.005, step.increase = 0.01) +
       scale_colour_manual(values=treatment_palette) +
       scale_fill_manual(values=treatment_palette) +
       scale_linetype_manual(values=c("AP"="solid", "proteome"="dotted")) +
