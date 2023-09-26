@@ -42,7 +42,7 @@ source(file.path(misc_scripts_path, 'furrr_utils.R'))
 treatment_palette <- c("Mock"="gray", "ZikV" = "#F4982A")
 hit_palette <- c("non-hit"="grey", hit="black", viral="#F4982A", "viral hit"="#F4982A")
 base_font_family <- "Segoe UI Symbol"
-base_plot_path <- file.path(analysis_path, 'plots', str_c(data_info$msfolder, "_", fit_version, "_meanfield"))
+base_plot_path <- file.path(analysis_path, 'plots', str_c(data_info$msfolder, "_", fit_version))#, "_meanfield"))
 #sel_ci_target <- "replicate"
 sel_ci_target <- "average"
 
