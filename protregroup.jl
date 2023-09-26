@@ -16,8 +16,8 @@ const results_path = joinpath(analysis_path, "results")
 const scratch_path = joinpath(analysis_path, "scratch")
 const plots_path = joinpath(analysis_path, "plots")
 
+# https://github.com/innatelab/analysis_utils_jl/blob/main/protgroup_assembly.jl
 includet(joinpath(misc_scripts_path, "protgroup_assembly.jl"));
-includet(joinpath(misc_scripts_path, "protgroup_crossmatch.jl"));
 
 peptides_rdata = load(joinpath(data_path, proj_info.msfolder,
                                "$(proj_info.id)_$(proj_info.msfolder)_$(proj_info.data_ver)_peptides.RData"))
