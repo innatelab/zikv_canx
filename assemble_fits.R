@@ -16,6 +16,7 @@ source(file.path(base_scripts_path, 'R/misc/setup_project_paths.R'))
 
 require(msglm)
 require(dplyr)
+require(tidyr)
 require(stringr)
 require(furrr)
 
@@ -116,7 +117,7 @@ object_bait_treatment_effects.df <-
               values_from = c("median", "mean", "sd", "p_value", "change"))
 
 object_contrasts_report.df <- dplyr::select(msdata$objects,
-    object_id, gene_names, majority_protein_acs, protein_description, starts_with("is_")) %>%
+    object_id, gene_names, majority_protein_acs, protein_description, npepmods, npepmods_unique, starts_with("is_")) %>%
   dplyr::left_join(
   pivot_wider_spec(object_contrasts.df,
   build_wider_spec(object_contrasts.df,
@@ -133,4 +134,4 @@ object_contrasts_report.df <- dplyr::select(msdata$objects,
   dplyr::relocate(is_hit, .before=`change.CANX+ZikV`)
 
 writexl::write_xlsx(object_contrasts_report.df,
-                    file.path(analysis_path, "results", paste0(project_id, "_msglm_report_", fit_version, "_2.xlsx")))
+                    file.path(analysis_path, "results", paste0(project_id, "_msglm_report_", fit_version, "_3.xlsx")))
