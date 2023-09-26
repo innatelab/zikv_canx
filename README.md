@@ -3,7 +3,7 @@
 
 | DOI |
 |:----|
-| [![DOI](https://zenodo.org/badge/FIXME.svg)](https://zenodo.org/badge/latestdoi/FIXME) |
+| [![DOI](https://zenodo.org/badge/696955720.svg)](https://zenodo.org/badge/latestdoi/696955720) |
 
 A collection of R and Julia scripts for the analysis of data for "SARS-CoV-2/SARS-CoV" project:
   * `prepare_data.R`: MaxQuant data import, normalization, MSGLM model setup
